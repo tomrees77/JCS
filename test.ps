@@ -1,0 +1,70 @@
+#####
+#
+# Bitdefender silent install script taken from:
+# https://forum.pulseway.com/topic/4463-bitdefender-deploy/
+#
+# Edit the string below with the company-specific Base64 string
+#
+#####
+
+Import-Module $env:SyncroModule
+
+Function New-FileDownload {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Url,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Destination
+    )
+    $webClient = New-Object System.Net.WebClient
+    $webClient.DownloadFile($Url, $Destination)
+    if (Test-Path -LiteralPath $Destination) {
+        Write-Verbose "File downloaded Successfully"
+        return $true
+    }
+    else {
+        Write-Verbose "File download Failed"
+        return $false
+    }
+}
+ 
+$Installed = Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" | 
+Where-Object { $_.DisplayName -eq "Bitdefender Endpoint Security Tools" }
+ 
+if ($Installed) {
+    Log-Activity -Message "Bitdefender already installed. Exiting." -EventName "Install"
+    Exit 1
+}
+
+####
+# Edit the Base64 value here in $BitdefenderURL between the square brackets
+####
+$BitdefenderURL = "setupdownloader_[aHR0cHM6Ly9jbG91ZC1lY3MuZ3Jhdml0eXpvbmUuYml0ZGVmZW5kZXIuY29tL1BhY2thZ2VzL0JTVFdJTi8wL21iY3Utby9pbnN0YWxsZXIueG1sP2xhbmc9ZW4tVVM=].exe"
+Log-Activity -Message "Beginning download of Bitdefender..." -EventName "Install"
+$BaseURL = "https://cloud.gravityzone.bitdefender.com/Packages/BSTWIN/0/"
+$URL = $BaseURL + $BitdefenderURL
+$Destination = "$($env:TEMP)\$($BitdefenderURL)"
+ 
+$FileDownload = New-FileDownload -Url $URL -Destination $Destination
+if ($FileDownload) {
+    Log-Activity -Message "Download succeeded, beginning install..." -EventName "Install"
+    Start-Process $Destination -ArgumentList "/bdparams /silent silent" -Wait -NoNewWindow
+    Start-Sleep -Seconds 300
+}
+else {
+    Write-Output "File failed to download. Exiting."
+    Exit 1
+}
+$Installed = Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" | 
+Where-Object { $_.DisplayName -eq "Bitdefender Endpoint Security Tools" }
+ 
+if ($Installed) {
+    Log-Activity -Message "Bitdefender successfully installed." -EventName "Install"
+    Exit 0
+}
+else {
+    Log-Activity -Message "ERROR: Failed to install Bitdefender" -EventName "Install"
+    Exit 1
+}
