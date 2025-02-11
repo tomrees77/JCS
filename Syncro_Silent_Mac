@@ -1,0 +1,18 @@
+#!/bin/bash
+#timeout=3000000
+#maxlength=1000000
+
+# Deploy Syncro via command line, originally intended for use with ScreenConnect
+# Above comments are used by ScreenConnect's command processor
+# Script needs to be customized for each Syncro customer, get the information from the customer page.
+# Go to New > RMM Agent Installer, select Mac (PKG) and replace the specified data in the variables indicated below.
+# Copy the value after "token=" in the link address. Paste in POLICY_ID
+# In ScreenConnect, paste script in the right side menu, under the Commands tab (5th icon down)
+
+POLICY_ID=114b2de1-724b-4a62-a67d-8ccad95f1cbc
+echo $POLICY_ID > /tmp/syncro-deploy-id && \
+/usr/bin/curl -L1 https://production.kabutoservices.com/desktop/macos/setup -o /tmp/SyncroDesktop.pkg && \
+/usr/sbin/installer -target / -pkg /tmp/SyncroDesktop.pkg && \
+/bin/rm /tmp/SyncroDesktop.pkg && \
+/bin/rm /tmp/syncro-deploy-id && \
+echo "Syncro Agent Installed!"
